@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Delivery Checklist</title>
+<style>
+:root{--bg:#eef1f5;--card:#fff;--ink:#16222e;--mute:#66768a;--line:#d9e0e8;--accent:#1456d9;--done:#1c8a4a;--donebg:#e6f4ec;--chip:#eaf0fb;--note:#fff8e7;--noteline:#ffe0b2;--noteink:#8c5400}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#10161d;--card:#18212b;--ink:#e8eef5;--mute:#90a1b5;--line:#2a3745;--accent:#6ea1ff;--done:#52c47f;--donebg:#16301f;--chip:#22303f;--note:#2b2210;--noteline:#4a3718;--noteink:#ffd580}}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:16px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;padding:env(safe-area-inset-top,0) 0 env(safe-area-inset-bottom,0)}
+header{position:sticky;top:0;z-index:5;background:var(--bg);padding:calc(12px + env(safe-area-inset-top,0px)) 14px 10px;border-bottom:1px solid var(--line)}
+h1{font-size:20px;margin:0 0 8px;display:flex;justify-content:space-between;align-items:center}
+.stats{display:flex;gap:8px}
+.stat{flex:1;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:8px 10px}
+.stat b{display:block;font-size:20px}
+.stat span{font-size:12px;color:var(--mute)}
+.bar{height:6px;background:var(--line);border-radius:3px;margin:10px 0 8px;overflow:hidden}
+.bar i{display:block;height:100%;width:0;background:var(--done);transition:width .25s}
+.tabs{display:flex;gap:6px}
+.tabs button{flex:1}
+button{font:inherit;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:10px;padding:9px 10px;cursor:pointer}
+button.on{background:var(--accent);border-color:var(--accent);color:#fff}
+main{padding:12px 14px 90px;display:grid;gap:10px}
+.item{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px;display:grid;grid-template-columns:1fr 56px;gap:10px}
+.item.done{background:var(--donebg);border-color:var(--done)}
+.item.done .name{text-decoration:line-through;opacity:.7}
+.name{font-weight:650;font-size:18px;overflow-wrap:anywhere;text-transform:capitalize}
+.chips{display:flex;gap:6px;margin:6px 0;flex-wrap:wrap}
+.chip{background:var(--chip);border-radius:8px;padding:3px 9px;font-size:14px;font-weight:600}
+.row{display:flex;gap:8px;align-items:center;margin-top:6px;flex-wrap:wrap}
+.row a,.row button{font-size:14px;padding:7px 11px;text-decoration:none;color:var(--accent);background:var(--card);border:1px solid var(--line);border-radius:9px;display:inline-flex;align-items:center;gap:4px}
+.check{width:56px;height:56px;align-self:center;border-radius:50%;border:2px solid var(--mute);background:transparent;font-size:30px;line-height:1;color:transparent;padding:0}
+.done .check{background:var(--done);border-color:var(--done);color:#fff}
+input[type=text],input[type=tel],input[type=number]{width:100%;font:inherit;padding:9px;border:1px solid var(--line);border-radius:9px;background:var(--bg);color:var(--ink)}
+.loc{margin-top:8px}
+.note-box{margin-top:8px;padding:6px 10px;background:var(--note);border:1px solid var(--noteline);color:var(--noteink);border-radius:8px;font-size:13px}
+.edit{display:none;margin-top:8px;gap:6px;grid-template-columns:1fr 1fr}
+.edit.open{display:grid}
+.edit .full{grid-column:1/-1}
+.edit label{font-size:12px;color:var(--mute)}
+footer{position:fixed;left:0;right:0;bottom:0;background:var(--bg);border-top:1px solid var(--line);padding:10px 14px calc(10px + env(safe-area-inset-bottom,0px));display:flex;gap:8px}
+footer button{flex:1}
+.empty{text-align:center;color:var(--mute);padding:30px 0}
+.row a.asked{color:var(--done);border-color:var(--done)}
+.tools{display:flex;gap:6px;margin-top:6px}
+.tools button{flex:1;font-size:13px;padding:7px}
+</style>
+</head>
+<body>
+<header>
+  <h1>Delivery Checklist</h1>
+  <div class="stats">
+    <div class="stat"><b id="sDone">0 / 0</b><span>Delivered</span></div>
+    <div class="stat"><b id="sLunch">0</b><span>Lunch left</span></div>
+    <div class="stat"><b id="sDinner">0</b><span>Dinner left</span></div>
+  </div>
+  <div class="bar"><i id="barFill"></i></div>
+  <div class="tabs">
+    <button id="tAll" class="on">All</button>
+    <button id="tPend">Pending</button>
+    <button id="tDone">Done</button>
+  </div>
+  <div class="tools">
+    <button id="msgBtn">Edit Msg</button>
+    <button id="askReset">Clear Asked</button>
+    <button id="reloadSheet">Sync Sheet Data</button>
+  </div>
+  <div id="msgBox" style="display:none;margin-top:6px">
+    <textarea id="msgText" rows="3" style="width:100%;font:inherit;padding:8px;border:1px solid var(--line);border-radius:9px;background:var(--card);color:var(--ink)"></textarea>
+    <button id="msgSave" style="width:100%;margin-top:4px">Save message</button>
+  </div>
+</header>
+
+<main id="list"></main>
+
+<footer>
+  <button id="askBtn">Ask pin</button>
+  <button id="addBtn">+ Add</button>
+  <button id="resetBtn">Clear ticks</button>
+</footer>
+
+<script>
+// Updated Key to ensure latest merged Excel data is loaded cleanly
+var KEY = "delivery_checklist_v2";
+
+// Complete updated defaults merged directly from delivery_sheet.xlsx
+var DEFAULTS = [
+  { id: 1,  name: "Suthora",                   phone: "",                   lunch: 0, dinner: 1, loc: "",                      notes: "Phone number to be added" },
+  { id: 2,  name: "Arechari",                  phone: "99641024",           lunch: 1, dinner: 1, loc: "",                      notes: "" },
+  { id: 3,  name: "Pial",                      phone: "9809261452",         lunch: 0, dinner: 1, loc: "",                      notes: "" },
+  { id: 4,  name: "Aquanisbi",                 phone: "99172457",           lunch: 2, dinner: 0, loc: "",                      notes: "" },
+  { id: 5,  name: "Jaqtder",                   phone: "99811728",           lunch: 1, dinner: 1, loc: "",                      notes: "" },
+  { id: 6,  name: "Febu Sam",                  phone: "77530524",           lunch: 1, dinner: 1, loc: "35.922806, 14.482250", notes: "" },
+  { id: 7,  name: "Londtand Cons",             phone: "77796901",           lunch: 3, dinner: 0, loc: "35.899509, 14.491600", notes: "" },
+  { id: 8,  name: "Aol Suppermarket / Sajesh", phone: "79656070",           lunch: 2, dinner: 1, loc: "35.900589, 14.490386", notes: "Entries merged: 2L/0D & 1L/1D" },
+  { id: 9,  name: "Shamas",                    phone: "99647469",           lunch: 1, dinner: 1, loc: "35.902027, 14.494001", notes: "" },
+  { id: 10, name: "Aldren",                    phone: "79934013",           lunch: 1, dinner: 1, loc: "",                      notes: "" },
+  { id: 11, name: "Suhail Nani",               phone: "8848441276",         lunch: 1, dinner: 0, loc: "35.904625, 14.491823", notes: "" },
+  { id: 12, name: "Adrash",                    phone: "8129967955",         lunch: 1, dinner: 1, loc: "35.906750, 14.510028", notes: "" },
+  { id: 13, name: "Sanoesh",                   phone: "99042355",           lunch: 1, dinner: 1, loc: "",                      notes: "" },
+  { id: 14, name: "Point Mall",                phone: "99361309 / 77328656", lunch: 4, dinner: 2, loc: "",                      notes: "Two entries merged" },
+  { id: 15, name: "Maypol",                    phone: "",                   lunch: 2, dinner: 0, loc: "",                      notes: "Phone number to be added" },
+  { id: 16, name: "Daucan",                    phone: "99014081",           lunch: 3, dinner: 0, loc: "",                      notes: "" },
+  { id: 17, name: "Tomson",                    phone: "77736702",           lunch: 1, dinner: 0, loc: "",                      notes: "" },
+  { id: 18, name: "Adarsh Murali",             phone: "99004715",           lunch: 1, dinner: 0, loc: "",                      notes: "" },
+  { id: 19, name: "Akhil",                     phone: "99640634",           lunch: 1, dinner: 0, loc: "",                      notes: "" },
+  { id: 20, name: "Basil / Jaison",            phone: "77933732",           lunch: 2, dinner: 2, loc: "35.923092, 14.473836", notes: "Basil 2 special dinner and lunch jaison normal 2" },
+  { id: 21, name: "Sajmal",                    phone: "99530590",           lunch: 1, dinner: 1, loc: "",                      notes: "" }
+];
+
+var data = null, filter = "all";
+var MSGKEY = "delivery_msg_v1";
+var DEFMSG = "Hello! This is regarding your lunch/dinner box delivery. Could you please send me your WhatsApp pin location for the delivery? Thank you!";
+
+function getMsg(){ try { return localStorage.getItem(MSGKEY) || DEFMSG; } catch(e){ return DEFMSG; } }
+
+function waNum(p){
+  if (!p) return "";
+  var firstNum = p.split("/")[0].trim();
+  var n = String(firstNum).replace(/[^0-9]/g, ""); 
+  if (n.length === 8) return "356" + n; 
+  if (n.length === 10) return "91" + n; 
+  return n; 
+}
+
+function waUrl(d){ return "https://wa.me/" + waNum(d.phone) + "?text=" + encodeURIComponent(getMsg()); }
+function askLeft(){ return data.filter(function(d){ return d.phone && !d.asked && !d.loc; }); }
+function coords(s){ var m = String(s).match(/^\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*$/); return m ? m[1] + "," + m[2] : null; }
+function mapUrl(s){ var c = coords(s); return c ? "https://maps.apple.com/?ll=" + c + "&q=Delivery" : "https://maps.apple.com/?q=" + encodeURIComponent(s); }
+function wazeUrl(s){ var c = coords(s); return c ? "https://waze.com/ul?ll=" + c + "&navigate=yes" : "https://waze.com/ul?q=" + encodeURIComponent(s) + "&navigate=yes"; }
+
+function normLoc(s){
+  var m = s.match(/(\d+)\s*°\s*(\d+)\s*['’′]\s*([\d.]+)\s*["”″]?\s*([NS])[\s,]*(\d+)\s*°\s*(\d+)\s*['’′]\s*([\d.]+)\s*["”″]?\s*([EW])/i);
+  if (!m) return s;
+  var la = +m[1] + m[2] / 60 + m[3] / 3600, lo = +m[5] + m[6] / 60 + m[7] / 3600;
+  if (/s/i.test(m[4])) la = -la;
+  if (/w/i.test(m[8])) lo = -lo;
+  return la.toFixed(6) + ", " + lo.toFixed(6);
+}
+
+function load(forceDefaults){
+  if (!forceDefaults) {
+    try { var s = localStorage.getItem(KEY); if (s) { data = JSON.parse(s); } } catch(e){}
+  }
+  if (!data || forceDefaults) {
+    data = DEFAULTS.map(function(d){
+      return { id: d.id, name: d.name, phone: d.phone, lunch: d.lunch, dinner: d.dinner, loc: d.loc, notes: d.notes, done: false, asked: false };
+    });
+    save();
+  }
+}
+
+function save(){ try { localStorage.setItem(KEY, JSON.stringify(data)); } catch(e){} }
+function esc(t){ return String(t || "").replace(/[&<>"]/g, function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]; }); }
+
+function render(){
+  var list = document.getElementById("list");
+  var open = {};
+  document.querySelectorAll(".edit.open").forEach(function(e){ open[e.dataset.id] = true; });
+  var html = "";
+  
+  data.forEach(function(d){
+    if (filter === "pending" && d.done) return;
+    if (filter === "done" && !d.done) return;
+    
+    var tel = "";
+    if (d.phone) {
+      var nums = d.phone.split("/");
+      tel = nums.map(function(n){
+        var clean = n.trim().replace(/[^0-9+]/g,"");
+        return '<a href="tel:' + esc(clean) + '">Call ' + esc(n.trim()) + '</a>';
+      }).join(" ");
+    } else {
+      tel = '<span style="color:var(--mute);font-size:14px">No phone</span>';
+    }
+
+    var map = d.loc ? '<a href="' + wazeUrl(d.loc) + '" target="_blank"><b>Waze</b></a><a href="' + mapUrl(d.loc) + '" target="_blank">Maps</a>' : "";
+    var wa = d.phone ? '<a class="' + (d.asked ? "asked" : "") + '" data-wa="' + d.id + '" href="' + waUrl(d) + '" target="_blank">WA' + (d.asked ? " &#10003;" : "") + '</a>' : "";
+    var notesHtml = d.notes ? '<div class="note-box">📝 ' + esc(d.notes) + '</div>' : "";
+
+    html += '<div class="item' + (d.done ? " done" : "") + '">' +
+      '<div><div class="name">' + esc(d.name || "(no name)") + '</div>' +
+      '<div class="chips">' + 
+        (d.lunch ? '<span class="chip">Lunch ' + d.lunch + '</span>' : "") + 
+        (d.dinner ? '<span class="chip">Dinner ' + d.dinner + '</span>' : "") + 
+      '</div>' +
+      '<div class="row">' + tel + map + wa + '<button data-edit="' + d.id + '">Edit</button></div>' +
+      '<div class="loc"><input type="text" placeholder="Location coordinates / address" value="' + esc(d.loc) + '" data-loc="' + d.id + '"></div>' +
+      notesHtml +
+      '<div class="edit' + (open[d.id] ? " open" : "") + '" data-id="' + d.id + '">' +
+        '<div class="full"><label>Name</label><input type="text" value="' + esc(d.name) + '" data-f="name" data-id="' + d.id + '"></div>' +
+        '<div class="full"><label>Phone</label><input type="tel" value="' + esc(d.phone) + '" data-f="phone" data-id="' + d.id + '"></div>' +
+        '<div><label>Lunch boxes</label><input type="number" min="0" value="' + d.lunch + '" data-f="lunch" data-id="' + d.id + '"></div>' +
+        '<div><label>Dinner boxes</label><input type="number" min="0" value="' + d.dinner + '" data-f="dinner" data-id="' + d.id + '"></div>' +
+        '<div class="full"><label>Notes</label><input type="text" value="' + esc(d.notes) + '" data-f="notes" data-id="' + d.id + '"></div>' +
+        '<div class="full"><button data-del="' + d.id + '" style="width:100%;color:#c0392b">Remove customer</button></div>' +
+      '</div></div>' +
+      '<button class="check" data-tick="' + d.id + '" aria-label="Mark delivered">&#10003;</button></div>';
+  });
+  list.innerHTML = html || '<div class="empty">Nothing here.</div>';
+  stats();
+}
+
+function stats(){
+  var done = 0, l = 0, di = 0;
+  data.forEach(function(d){ if (d.done) done++; else { l += +d.lunch || 0; di += +d.dinner || 0; } });
+  document.getElementById("sDone").textContent = done + " / " + data.length;
+  document.getElementById("askBtn").textContent = "Ask pin (" + askLeft().length + ")";
+  document.getElementById("sLunch").textContent = l;
+  document.getElementById("sDinner").textContent = di;
+  document.getElementById("barFill").style.width = (data.length ? (done / data.length * 100) : 0) + "%";
+}
+
+function find(id){ return data.filter(function(d){ return d.id == id; })[0]; }
+
+document.getElementById("list").addEventListener("click", function(e){
+  var a = e.target.closest("a[data-wa]");
+  if (a) { find(a.dataset.wa).asked = true; save(); setTimeout(render, 400); return; }
+  var t = e.target.closest("button"); if (!t) return;
+  if (t.dataset.tick) { var d = find(t.dataset.tick); d.done = !d.done; save(); render(); }
+  else if (t.dataset.edit) { var p = document.querySelector('.edit[data-id="' + t.dataset.edit + '"]'); p.classList.toggle("open"); }
+  else if (t.dataset.del) { twoTap(t, function(){ data = data.filter(function(x){ return x.id != t.dataset.del; }); save(); render(); }); }
+});
+
+document.getElementById("list").addEventListener("change", function(e){
+  var el = e.target;
+  if (el.dataset.loc) { find(el.dataset.loc).loc = normLoc(el.value.trim()); save(); render(); return; }
+  if (el.dataset.f) {
+    var d = find(el.dataset.id), f = el.dataset.f;
+    d[f] = (f === "lunch" || f === "dinner") ? (parseInt(el.value, 10) || 0) : el.value.trim();
+    save(); render();
+  }
+});
+
+function setFilter(f, id){
+  filter = f;
+  ["tAll","tPend","tDone"].forEach(function(x){ document.getElementById(x).classList.toggle("on", x === id); });
+  render();
+}
+
+document.getElementById("tAll").onclick = function(){ setFilter("all","tAll"); };
+document.getElementById("tPend").onclick = function(){ setFilter("pending","tPend"); };
+document.getElementById("tDone").onclick = function(){ setFilter("done","tDone"); };
+
+document.getElementById("addBtn").onclick = function(){
+  var next = data.reduce(function(m, d){ return Math.max(m, d.id); }, 0) + 1;
+  data.push({id:next, name:"New customer", phone:"", lunch:1, dinner:0, loc:"", notes:"", done:false, asked:false});
+  save(); setFilter("all","tAll");
+  var p = document.querySelector('.edit[data-id="' + next + '"]'); if (p) { p.classList.add("open"); p.scrollIntoView({block:"center"}); }
+};
+
+document.getElementById("resetBtn").onclick = function(){
+  twoTap(this, function(){ data.forEach(function(d){ d.done = false; }); save(); render(); });
+};
+
+document.getElementById("askBtn").onclick = function(){
+  var n = askLeft();
+  if (!n.length) { this.textContent = "Everyone asked"; setTimeout(render, 2000); return; }
+  n[0].asked = true; save(); render();
+  window.open(waUrl(n[0]), "_blank");
+};
+
+document.getElementById("msgBtn").onclick = function(){
+  var box = document.getElementById("msgBox");
+  box.style.display = box.style.display === "block" ? "none" : "block";
+  document.getElementById("msgText").value = getMsg();
+};
+
+document.getElementById("msgSave").onclick = function(){
+  var m = document.getElementById("msgText").value.trim();
+  if (m) { try { localStorage.setItem(MSGKEY, m); } catch(e){} }
+  document.getElementById("msgBox").style.display = "none";
+  render();
+};
+
+document.getElementById("askReset").onclick = function(){
+  twoTap(this, function(){ data.forEach(function(d){ d.asked = false; }); save(); render(); });
+};
+
+document.getElementById("reloadSheet").onclick = function(){
+  twoTap(this, function(){ load(true); render(); });
+};
+
+function twoTap(b, fn){
+  if (b.dataset.arm) { clearTimeout(+b.dataset.arm); b.dataset.arm = ""; b.textContent = b._t; fn(); return; }
+  b._t = b.textContent;
+  b.textContent = "Tap to confirm";
+  b.dataset.arm = String(setTimeout(function(){ b.textContent = b._t; b.dataset.arm = ""; }, 3000));
+}
+
+load();
+render();
+</script>
+</body>
+</html>
